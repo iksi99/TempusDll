@@ -76,7 +76,7 @@ bool TEMPUS_API USB_Connect(void)
 	return true;
 }
 
-void TEMPUS_API USB_StartThread(void)
+DWORD TEMPUS_API USB_StartThread(LPVOID param)
 {
 	try
 	{
@@ -111,6 +111,8 @@ void TEMPUS_API USB_StartThread(void)
 						bDeviceHandleOpened = false;
 						bCommandProcessed = true;
 					}
+
+					return 0;
 				}
 
 				bCommandRequested = true;
@@ -124,7 +126,11 @@ void TEMPUS_API USB_StartThread(void)
 				if (ftStatus != FT_OK)
 					throw std::exception("USB Communication Error: bad status");
 				if (dwDeviceEvent != FT_EVENT_RXCHAR)
-					throw std::exception("USB Communication Error: Unknown event occured");
+				{
+					//throw std::exception("USB Communication Error: Unknown event occured");
+					//break;
+				}
+
 
 				ftStatus = FT_Read(fthDevice, byRxBuffer, dwRxBytesReceivedTemp, &dwRxBytesReceived);
 				if (ftStatus != FT_OK)
@@ -233,6 +239,8 @@ void TEMPUS_API USB_StartThread(void)
 
 		bCommandRequested = false;
 	}
+
+	return 0;
 }
 
 void TEMPUS_API USB_Disconnect(void)
@@ -249,7 +257,7 @@ void TEMPUS_API USB_Disconnect(void)
 
 void TEMPUS_API Drive_TurnOn(void)
 {
-	if (bBoardConnected == false || bCommandProcessed == false)
+	if (bBoardConnected == false)
 	{
 		return;
 	}
@@ -262,7 +270,7 @@ void TEMPUS_API Drive_TurnOn(void)
 
 void TEMPUS_API Drive_TurnOff(void)
 {
-	if (bBoardConnected == false || bCommandProcessed == false)
+	if (bBoardConnected == false)
 	{
 		return;
 	}
@@ -275,7 +283,7 @@ void TEMPUS_API Drive_TurnOff(void)
 
 unsigned int TEMPUS_API Mnemonic_Read(const char* mnemonic)
 {
-	if (bBoardConnected == false || bCommandProcessed == false)
+	if (bBoardConnected == false)
 	{
 		return 0;
 	}
@@ -298,12 +306,13 @@ unsigned int TEMPUS_API Mnemonic_Read(const char* mnemonic)
 
 void TEMPUS_API Mnemonic_Write(const char* mnemonic, unsigned short data)
 {
-	if (bBoardConnected == false || bCommandProcessed == false)
+	if (bBoardConnected == false)
 		return;
 
 	if (mnemonic == "")
 		return;
 
+	int length = strlen(mnemonic);
 	PCMessage.Command = CMD_MNEMONIC_WRITE;
 	for (int i = 0; (i < MNEMONIC_MAX_SIZE) && (i < strlen(mnemonic)); i++)
 		PCMessage.Mnemonic.Code[i] = mnemonic[i]; // original was i+1 need to test for weird stuff

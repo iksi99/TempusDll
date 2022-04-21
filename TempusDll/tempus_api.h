@@ -161,7 +161,7 @@ unsigned int iCounter;
 
 // Functions for USB connection
 extern "C" bool TEMPUS_API USB_Connect(void);
-extern "C" void TEMPUS_API USB_StartThread(void);
+extern "C" DWORD TEMPUS_API USB_StartThread(LPVOID param);
 extern "C" void TEMPUS_API USB_Disconnect(void);
 
 // Functions for turning drive on and off
