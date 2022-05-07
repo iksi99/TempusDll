@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ftd2xx.h"
+#include <fstream>
 
 #ifdef TEMPUS_EXPORTS
 #define TEMPUS_API __declspec(dllexport)
@@ -130,6 +131,7 @@ typedef struct
 
 TPCMessage PCMessage;
 TDSPMessage DSPMessage;
+TDSPPacket DSPPacket;
 
 DWORD dwRxBytesReceived;
 DWORD dwRxBytesReceivedTemp;
@@ -143,6 +145,7 @@ BOOL bDeviceHandleOpened;
 BOOL bCommandRequested;
 BOOL bCommandProcessed;
 BOOL bTerminate;
+BOOL bDAQEnabled;
 
 FT_HANDLE fthDevice;
 FT_STATUS ftStatus;
@@ -153,11 +156,16 @@ HANDLE hDeviceEvent;
 HANDLE hEvents[2];
 DWORD  dwEvent;
 
+std::ofstream myfile;
+double DAQBuffer[DAQ_NUM_OF_SAMPLES_PER_CH * DAQ_NUM_OF_CHANNELS];
+
 char byRxBuffer[FTDI_DAQ_RX_BUFFER_SIZE];
 char byTxBuffer[FTDI_DAQ_TX_BUFFER_SIZE];
 
 unsigned int iNumOfCommErrors;
 unsigned int iCounter;
+
+extern "C" void TEMPUS_API MakeThread();
 
 // Functions for USB connection
 extern "C" bool TEMPUS_API USB_Connect(void);

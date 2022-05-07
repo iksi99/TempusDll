@@ -76,6 +76,18 @@ bool TEMPUS_API USB_Connect(void)
 	return true;
 }
 
+void TEMPUS_API MakeThread()
+{
+	DWORD dwThreadId = 0;
+	CreateThread(
+		NULL,                   // default security attributes
+		0,                      // use default stack size  
+		USB_StartThread,        // thread function name
+		NULL,                   // argument to thread function 
+		0,                      // use default creation flags 
+		&dwThreadId);   // returns the thread identifier 
+}
+
 DWORD TEMPUS_API USB_StartThread(LPVOID param)
 {
 	try
@@ -197,23 +209,32 @@ DWORD TEMPUS_API USB_StartThread(LPVOID param)
 				}
 
 				// TODO:Port DAQ to something matlab compatible
-				/*
-				if (dwRxBytesReceived >= FTDI_DAQ_IN_REQUEST_SIZE && InterlockedCompareExchange(&lMainFormDAQEnabled, 1, 1))
+				
+				if (dwRxBytesReceived >= FTDI_DAQ_IN_REQUEST_SIZE && bDAQEnabled)
 				{
 					memcpy(&DSPPacket, byRxBuffer, sizeof(DSPPacket));
 
-					DAQScopeDataBuffer.Zero();
-					double* pdbDAQScopeDataBufferWrite = DAQScopeDataBuffer.Write();
-					for (i = 0, j = 0; i < DAQ_SCOPE_NUM_OF_SAMPLES_PER_CH; i++, j += DAQ_SCOPE_CH_SIZE_DIV)
-						for (k = 0; k < DAQ_NUM_OF_CHANNELS; k++)
-							for (l = 0; l < DAQ_SCOPE_CH_SIZE_DIV; l++)
-								*(pdbDAQScopeDataBufferWrite + k * DAQ_SCOPE_NUM_OF_SAMPLES_PER_CH + i) += (short)DSPPacket.DAQData[(j + l) * DAQ_NUM_OF_CHANNELS + k];
-					DAQScopeDataBuffer /= (double)DAQ_SCOPE_CH_SIZE_DIV;
+					/*for (int i = 0; i < DAQ_NUM_OF_SAMPLES_PER_CH; i++)
+					{
+						for (int j = 0; j < DAQ_NUM_OF_CHANNELS; j++)
+						{
+							char separator = (j == DAQ_NUM_OF_CHANNELS - 1) ? '\n' : ',';
+							myfile << DSPPacket.DAQData[i * DAQ_NUM_OF_CHANNELS + j] << separator;
+						}
+					}*/
 
-					Synchronize(&DisplayData);
+					for (int i = 0; i < DAQ_NUM_OF_SAMPLES_PER_CH * DAQ_NUM_OF_CHANNELS; i++)
+					{
+						DAQBuffer[i] = 0;
+					}
 
-					LoggerClient.write(byRxBuffer + sizeof(TDSPMessage), sizeof(DSPPacket.DAQData), 0);
-				}*/
+					for (int i = 0, j = 0; i < DAQ_SCOPE_NUM_OF_SAMPLES_PER_CH; i++, j += DAQ_SCOPE_CH_SIZE_DIV)
+						for (int k = 0; k < DAQ_NUM_OF_CHANNELS; k++)
+							for (int l = 0; l < DAQ_SCOPE_CH_SIZE_DIV; l++)
+								*(DAQBuffer + k * DAQ_SCOPE_NUM_OF_SAMPLES_PER_CH + i) += (short)DSPPacket.DAQData[(j + l) * DAQ_NUM_OF_CHANNELS + k] / (double)DAQ_SCOPE_CH_SIZE_DIV;
+
+					int breakpoint = 0;
+				}
 
 				break;
 
@@ -335,12 +356,30 @@ void TEMPUS_API Params_Save(void)
 
 void TEMPUS_API DAQ_Start(void)
 {
-	return void TEMPUS_API();
+	if (bBoardConnected == false)
+		return;
+
+	PCMessage.Command = CMD_START_USB_DAQ;
+
+	myfile.open("DAQ.csv");
+
+	SetEvent(hCommandEvent);
+	bDAQEnabled = true;
+	bCommandProcessed = false;
 }
 
 void TEMPUS_API DAQ_Stop(void)
 {
-	return void TEMPUS_API();
+	if (bBoardConnected == false)
+		return;
+
+	PCMessage.Command = CMD_STOP_USB_DAQ;
+
+	myfile.close();
+
+	SetEvent(hCommandEvent);
+	bDAQEnabled = false;
+	bCommandProcessed = false;
 }
 
 void TEMPUS_API Log_Start(void)

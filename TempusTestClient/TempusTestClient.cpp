@@ -20,19 +20,22 @@ int main()
     }
     
     std::cout << "Creating Thread..." << std::endl;
-    DWORD dThreadId = 0;
+    DWORD dwThreadId = 0;
     CreateThread(
         NULL,                   // default security attributes
         0,                      // use default stack size  
-        USB_StartThread,       // thread function name
+        USB_StartThread,        // thread function name
         NULL,                   // argument to thread function 
         0,                      // use default creation flags 
-        &dThreadId);   // returns the thread identifier 
+        &dwThreadId);   // returns the thread identifier 
     std::cout << "Thread Created." << std::endl;
     Drive_TurnOn();
     std::cout << "Drive Turned On." << std::endl;
 
     unsigned short speed = 0;
+
+    std::cout << "Starting DAQ" << std::endl;
+    DAQ_Start();
 
     while (true)
     {
@@ -45,6 +48,9 @@ int main()
             break;
         }
     }
+
+    std::cout << "Stopping DAQ" << std::endl;
+    DAQ_Stop();
 
     std::cout << "Turning Everything off..." << std::endl;
     Drive_TurnOff();
