@@ -8,6 +8,10 @@
 
 int main()
 {
+
+    DWORD dwThreadId = 0;
+    HANDLE hUsbThread;
+
 	bool connectionSuccess = USB_Connect();
     if (connectionSuccess)
     {
@@ -20,15 +24,23 @@ int main()
     }
     
     std::cout << "Creating Thread..." << std::endl;
-    DWORD dwThreadId = 0;
-    CreateThread(
+    hUsbThread = CreateThread(
         NULL,                   // default security attributes
         0,                      // use default stack size  
         USB_StartThread,        // thread function name
         NULL,                   // argument to thread function 
         0,                      // use default creation flags 
         &dwThreadId);   // returns the thread identifier 
-    std::cout << "Thread Created." << std::endl;
+    if(hUsbThread != 0)
+    {
+        SetThreadPriority(hUsbThread, THREAD_PRIORITY_TIME_CRITICAL);
+        std::cout << "Thread Created." << std::endl;
+    }
+    else
+    {
+        std::cout << "Could not create thread" << std::endl;
+    }
+
     Drive_TurnOn();
     std::cout << "Drive Turned On." << std::endl;
 

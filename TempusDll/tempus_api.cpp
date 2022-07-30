@@ -94,6 +94,11 @@ DWORD TEMPUS_API USB_StartThread(LPVOID param)
 	{
 		for (; ; )
 		{
+
+			DWORD dwRxBytesTest = 10;
+			DWORD dwTxBytesTest = 10;
+			DWORD dwDeviceEventTest = 10;
+
 			dwEvent = WaitForMultipleObjects(
 				2,			// number of objects in array
 				hEvents,	// array of objects
@@ -134,22 +139,23 @@ DWORD TEMPUS_API USB_StartThread(LPVOID param)
 			case WAIT_OBJECT_0 + 1:
 				// hEvent[1] was signaled == FTDI Device Event
 
-				ftStatus = FT_GetStatus(fthDevice, &dwRxBytesReceivedTemp, &dwTxBytesWritten, &dwDeviceEvent);
+				//ftStatus = FT_GetStatus(fthDevice, &dwRxBytesReceivedTemp, &dwTxBytesWritten, &dwDeviceEvent);
+				ftStatus = FT_GetStatus(fthDevice, &dwRxBytesTest, &dwTxBytesTest, &dwDeviceEventTest);
 				if (ftStatus != FT_OK)
 					throw std::exception("USB Communication Error: bad status");
-				if (dwDeviceEvent != FT_EVENT_RXCHAR)
+				if (dwDeviceEventTest != FT_EVENT_RXCHAR)
 				{
+					OutputDebugStringA("A\n");
 					//throw std::exception("USB Communication Error: Unknown event occured");
 					//break;
 				}
 
-
-				ftStatus = FT_Read(fthDevice, byRxBuffer, dwRxBytesReceivedTemp, &dwRxBytesReceived);
-				if (ftStatus != FT_OK)
-					throw std::exception("USB Communication Error: Unable to read data from device");
-
 				if (bCommandRequested == true)
 				{
+					ftStatus = FT_Read(fthDevice, byRxBuffer, dwRxBytesTest, &dwRxBytesReceived);
+					if (ftStatus != FT_OK)
+						throw std::exception("USB Communication Error: Unable to read data from device");
+
 					memcpy(&DSPMessage, byRxBuffer, sizeof(DSPMessage));
 
 					if (PCMessage.Command == CMD_STOP_USB_DAQ)
@@ -210,30 +216,36 @@ DWORD TEMPUS_API USB_StartThread(LPVOID param)
 
 				// TODO:Port DAQ to something matlab compatible
 				
-				if (dwRxBytesReceived >= FTDI_DAQ_IN_REQUEST_SIZE && bDAQEnabled)
+				if (dwRxBytesTest >= FTDI_DAQ_IN_REQUEST_SIZE && bDAQEnabled)
 				{
+					ftStatus = FT_Read(fthDevice, byRxBuffer, dwRxBytesTest, &dwRxBytesReceived);
+					if (ftStatus != FT_OK)
+						throw std::exception("USB Communication Error: Unable to read data from device");
+
 					memcpy(&DSPPacket, byRxBuffer, sizeof(DSPPacket));
 
-					/*for (int i = 0; i < DAQ_NUM_OF_SAMPLES_PER_CH; i++)
+					for (int i = 0; i < DAQ_NUM_OF_SAMPLES_PER_CH; i++)
 					{
 						for (int j = 0; j < DAQ_NUM_OF_CHANNELS; j++)
 						{
 							char separator = (j == DAQ_NUM_OF_CHANNELS - 1) ? '\n' : ',';
-							myfile << DSPPacket.DAQData[i * DAQ_NUM_OF_CHANNELS + j] << separator;
+							myfile << (short)DSPPacket.DAQData[i * DAQ_NUM_OF_CHANNELS + j] << separator;
 						}
-					}*/
-
-					for (int i = 0; i < DAQ_NUM_OF_SAMPLES_PER_CH * DAQ_NUM_OF_CHANNELS; i++)
-					{
-						DAQBuffer[i] = 0;
 					}
 
-					for (int i = 0, j = 0; i < DAQ_SCOPE_NUM_OF_SAMPLES_PER_CH; i++, j += DAQ_SCOPE_CH_SIZE_DIV)
+					return 0;
+
+					/*for (int i = 0; i < DAQ_NUM_OF_SAMPLES_PER_CH * DAQ_NUM_OF_CHANNELS; i++)
+					{
+						DAQBuffer[i] = 0;
+					}*/
+
+					OutputDebugStringA("B\n");
+
+					/*for (int i = 0, j = 0; i < DAQ_SCOPE_NUM_OF_SAMPLES_PER_CH; i++, j += DAQ_SCOPE_CH_SIZE_DIV)
 						for (int k = 0; k < DAQ_NUM_OF_CHANNELS; k++)
 							for (int l = 0; l < DAQ_SCOPE_CH_SIZE_DIV; l++)
-								*(DAQBuffer + k * DAQ_SCOPE_NUM_OF_SAMPLES_PER_CH + i) += (short)DSPPacket.DAQData[(j + l) * DAQ_NUM_OF_CHANNELS + k] / (double)DAQ_SCOPE_CH_SIZE_DIV;
-
-					int breakpoint = 0;
+								*(DAQBuffer + k * DAQ_SCOPE_NUM_OF_SAMPLES_PER_CH + i) += (short)DSPPacket.DAQData[(j + l) * DAQ_NUM_OF_CHANNELS + k] / (double)DAQ_SCOPE_CH_SIZE_DIV;*/
 				}
 
 				break;
